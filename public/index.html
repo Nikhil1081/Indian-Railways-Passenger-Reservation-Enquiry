@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>INDIAN RAILWAYS PASSENGER RESERVATION ENQUIRY</title>
+  
+  <!-- Google Fonts: Outfit -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Material Icons -->
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+  
+  <!-- Custom Stylesheet -->
+  <!-- Custom Stylesheet -->
+  <link rel="stylesheet" href="styles.css?v=2.4">
+</head>
+<body class="light-mode">
+  
+  <!-- Glowing Background Blobs -->
+  <div class="bg-glow blob-1"></div>
+  <div class="bg-glow blob-2"></div>
+  <div class="bg-glow blob-3"></div>
+  
+  <!-- Outer App Container -->
+  <div class="app-container">
+    
+    <!-- Top Sleek Header -->
+    <header class="app-header">
+      <div class="header-logo">
+        <img src="ir_logo.png" alt="Indian Railways Logo" style="height: 100px; object-fit: contain; margin-right: 20px; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.2)); border-radius: 8px;">
+        <div class="logo-text">
+          <h1 style="font-size: 52px; font-weight: 900; letter-spacing: -0.8px; line-height: 1.1;" data-i18n="app_title">INDIAN RAILWAYS</h1>
+          <span class="subtext" style="font-size: 22px; color: var(--text-muted); font-weight: 800; letter-spacing: 1.5px; line-height: 1.3;" data-i18n="app_subtitle">PASSENGER RESERVATION ENQUIRY</span>
+        </div>
+      </div>
+      
+      <div class="header-right" style="display: flex; align-items: center; gap: 36px;">
+        <img src="cris_logo.png" alt="CRIS Logo" style="height: 90px; object-fit: contain; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.15)); border-radius: 8px;">
+        <!-- Theme Switcher & Language Selector -->
+        <div class="header-actions" style="display: flex; align-items: center; gap: 20px;">
+          <div class="language-selector-wrapper" title="Select Indian Language">
+            <span class="material-icons-round">language</span>
+            <select id="language-select" class="language-dropdown" aria-label="Select Language">
+              <option value="en">English</option>
+              <option value="hi">हिंदी (Hindi)</option>
+              <option value="bn">বাংলা (Bengali)</option>
+              <option value="te">తెలుగు (Telugu)</option>
+              <option value="mr">मराठी (Marathi)</option>
+              <option value="ta">தமிழ் (Tamil)</option>
+              <option value="gu">ગુજરાતી (Gujarati)</option>
+              <option value="kn">ಕನ್ನಡ (Kannada)</option>
+              <option value="ml">മലയാളം (Malayalam)</option>
+              <option value="pa">ਪੰਜਾਬੀ (Punjabi)</option>
+              <option value="or">ଓଡ଼ିଆ (Odia)</option>
+              <option value="as">অসমীয়া (Assamese)</option>
+              <option value="ur">اردو (Urdu)</option>
+            </select>
+          </div>
+          <button id="theme-toggle" class="icon-btn" title="Toggle Theme" style="width: 80px; height: 80px;">
+            <span class="material-icons-round" style="font-size: 40px;">dark_mode</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <div class="main-body-layout" style="display: grid; grid-template-columns: auto 1fr; gap: 40px; align-items: start; width: 100%;">
+      
+      <!-- Collapsible Left Sidebar (Gmail Style) -->
+      <aside class="left-menu-bar expanded" id="left-menu">
+        <button class="menu-item toggle-menu-btn" id="menu-toggle-btn" title="Toggle Menu">
+          <span class="material-icons-round">menu</span>
+        </button>
+        <button class="compose-btn" id="left-compose-btn" title="New Enquiry">
+          <span class="material-icons-round">search</span>
+          <span class="compose-label" data-i18n="compose_enquiry">New Enquiry</span>
+        </button>
+        <div class="menu-nav-items">
+          <button class="menu-item active" data-tab="pnr" title="PNR Enquiry">
+            <span class="material-icons-round">receipt</span>
+            <span class="menu-label" data-i18n="nav_pnr">PNR Enquiry</span>
+          </button>
+          <button class="menu-item" data-tab="seats" title="Seat Availability">
+            <span class="material-icons-round">event_seat</span>
+            <span class="menu-label" data-i18n="nav_seats">Seat Availability</span>
+          </button>
+          <button class="menu-item" data-tab="trains" title="Find Trains">
+            <span class="material-icons-round">train</span>
+            <span class="menu-label" data-i18n="nav_trains">Find Trains</span>
+          </button>
+          <button class="menu-item" data-tab="schedule" title="Train Schedule">
+            <span class="material-icons-round">schedule</span>
+            <span class="menu-label" data-i18n="nav_schedule">Train Schedule</span>
+          </button>
+          <button class="menu-item" data-tab="live" title="Live Train Status">
+            <span class="material-icons-round">my_location</span>
+            <span class="menu-label" data-i18n="nav_live">Live Train Status</span>
+          </button>
+          <button class="menu-item" data-action="rules" title="Rules & Policies">
+            <span class="material-icons-round">gavel</span>
+            <span class="menu-label" data-i18n="nav_rules">Rules & Policies</span>
+          </button>
+          <button class="menu-item" data-action="chat" title="AI Chatbot">
+            <span class="material-icons-round">forum</span>
+            <span class="menu-label" data-i18n="nav_chatbot">AI Chatbot</span>
+          </button>
+        </div>
+      </aside>
+
+      <!-- Right Side Main Content flow -->
+      <div class="main-content-flow" style="display: flex; flex-direction: column; gap: 36px; min-width: 0;">
+
+        <!-- Hero Banner Section -->
+        <section class="hero-section">
+          <div class="hero-content">
+            <h2 data-i18n="hero_title">Indian Railways Enquiry System</h2>
+            <p data-i18n="hero_desc">Get instant PNR status, seat availability, train searches, route schedules, and live running status. Designed ad-free and powered by RailAI.</p>
+          </div>
+          <div class="hero-stats">
+            <div class="stat-item">
+              <span class="stat-num">10M+</span>
+              <span class="stat-label" data-i18n="hero_stat_passengers">Daily Passengers</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-num">20,000+</span>
+              <span class="stat-label" data-i18n="hero_stat_trains">Active Trains</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-num">7,000+</span>
+              <span class="stat-label" data-i18n="hero_stat_stations">Stations</span>
+            </div>
+          </div>
+        </section>
+
+    <!-- Main Content Area -->
+    <main class="app-content">
+      
+      <!-- Left side / Main tabs for enquiry -->
+      <section class="enquiry-section">
+        
+        <!-- Google-style Tab Bar -->
+        <nav class="enquiry-tabs">
+          <button class="tab-link active" data-tab="pnr-tab">
+            <span class="material-icons-round">confirmation_number</span>
+            <span data-i18n="nav_pnr">PNR Enquiry</span>
+          </button>
+          <button class="tab-link" data-tab="seats-tab">
+            <span class="material-icons-round">event_seat</span>
+            <span data-i18n="nav_seats">Seat Availability</span>
+          </button>
+          <button class="tab-link" data-tab="trains-tab">
+            <span class="material-icons-round">search</span>
+            <span data-i18n="nav_trains">Find Trains</span>
+          </button>
+          <button class="tab-link" data-tab="schedule-tab">
+            <span class="material-icons-round">schedule</span>
+            <span data-i18n="nav_schedule">Train Schedule</span>
+          </button>
+          <button class="tab-link" data-tab="live-tab">
+            <span class="material-icons-round">my_location</span>
+            <span data-i18n="nav_live">Live Train Status</span>
+          </button>
+        </nav>
+
+        <!-- Tab Content Wrapper -->
+        <div class="tab-content-container">
+          
+          <!-- 1. PNR Tab -->
+          <div id="pnr-tab" class="tab-pane active">
+            <div class="search-box-card">
+              <div class="card-header">
+                <h2>Check Passenger Name Record (PNR)</h2>
+                <p>Enter the 10-digit PNR printed on your ticket to see the booking status.</p>
+              </div>
+              <form id="pnr-form" class="search-form">
+                <div class="input-wrapper">
+                  <span class="input-icon material-icons-round">confirmation_number</span>
+                  <input type="text" id="pnr-input" placeholder="Enter 10-Digit PNR..." maxlength="10" required>
+                </div>
+                <button type="submit" class="btn btn-primary">
+                  <span>Get Status</span>
+                  <span class="material-icons-round">chevron_right</span>
+                </button>
+              </form>
+              <div class="pnr-examples">
+                <span>Try Example PNRs:</span>
+                <button type="button" class="chip-btn" onclick="prefillPNR('1234567890')">1234567890 (Rajdhani - CNF)</button>
+                <button type="button" class="chip-btn" onclick="prefillPNR('9876543210')">9876543210 (Rajdhani - WL)</button>
+              </div>
+            </div>
+
+            <!-- Dynamic PNR Result Panel -->
+            <div id="pnr-result" class="result-panel hidden">
+              <!-- Content injected via JS -->
+            </div>
+          </div>
+
+          <!-- 2. Seat Availability Tab -->
+          <div id="seats-tab" class="tab-pane">
+            <div class="search-box-card">
+              <div class="card-header">
+                <h2>Check Seat Availability</h2>
+                <p>Find available seats on your preferred train, class, and journey date.</p>
+              </div>
+              <form id="seats-form" class="search-form grid-layout">
+                <div class="input-wrapper">
+                  <span class="input-icon material-icons-round">train</span>
+                  <input type="text" id="seat-train-input" placeholder="Train No. (e.g. 12952)" required autocomplete="off">
+                </div>
+                <div class="input-wrapper">
+                  <span class="input-icon material-icons-round">flight_takeoff</span>
+                  <input type="text" id="seat-src-input" placeholder="From Station Code (e.g. NDLS)" required>
+                </div>
+                <div class="input-wrapper">
+                  <span class="input-icon material-icons-round">flight_land</span>
+                  <input type="text" id="seat-dst-input" placeholder="To Station Code (e.g. MMCT)" required>
+                </div>
+                <div class="input-wrapper">
+                  <span class="input-icon material-icons-round">calendar_today</span>
+                  <input type="date" id="seat-date-input" required>
+                </div>
+                <div class="input-wrapper">
+                  <span class="input-icon material-icons-round">airline_seat_recline_extra</span>
+                  <select id="seat-class-select">
+                    <option value="3A">AC 3 Tier (3A)</option>
+                    <option value="2A">AC 2 Tier (2A)</option>
+                    <option value="1A">AC First Class (1A)</option>
+                    <option value="CC">AC Chair Car (CC)</option>
+                    <option value="EC">Executive Anubhuti (EC)</option>
+                    <option value="SL">Sleeper (SL)</option>
+                  </select>
+                </div>
+                <div class="input-wrapper">
+                  <span class="input-icon material-icons-round">assignment_ind</span>
+                  <select id="seat-quota-select">
+                    <option value="GN">General Quota (GN)</option>
+                    <option value="TQ">Tatkal Quota (TQ)</option>
+                    <option value="LD">Ladies Quota (LD)</option>
+                  </select>
+                </div>
+                <button type="submit" class="btn btn-primary span-all">
+                  <span>Search Availability</span>
+                  <span class="material-icons-round">search</span>
+                </button>
+              </form>
+            </div>
+
+            <!-- Dynamic Seat Availability Panel -->
+            <div id="seats-result" class="result-panel hidden">
+              <!-- Content injected via JS -->
+            </div>
+          </div>
+
+          <!-- 3. Trains Between Stations Tab -->
+          <div id="trains-tab" class="tab-pane">
+            <div class="search-box-card">
+              <div class="card-header">
+                <h2>Find Trains Between Stations</h2>
+                <p>Search trains running on the route between your source and destination.</p>
+              </div>
+              <form id="trains-form" class="search-form inline-layout">
+                <div class="input-wrapper">
+                  <span class="input-icon material-icons-round">flight_takeoff</span>
+                  <input type="text" id="trains-src-input" placeholder="Source Station (e.g. NDLS)" required>
+                </div>
+                <div class="input-wrapper swap-container">
+                  <button type="button" id="swap-stations-btn" class="icon-btn" title="Swap Stations">
+                    <span class="material-icons-round">swap_horiz</span>
+                  </button>
+                </div>
+                <div class="input-wrapper">
+                  <span class="input-icon material-icons-round">flight_land</span>
+                  <input type="text" id="trains-dst-input" placeholder="Destination Station (e.g. MMCT)" required>
+                </div>
+                <button type="submit" class="btn btn-primary">
+                  <span>Find Trains</span>
+                  <span class="material-icons-round">arrow_forward</span>
+                </button>
+              </form>
+              <div class="station-hints">
+                <span>Station codes:</span>
+                <button type="button" class="chip-btn" onclick="fillRoute('NDLS', 'MMCT')">NDLS ↔ MMCT</button>
+                <button type="button" class="chip-btn" onclick="fillRoute('HWH', 'NDLS')">HWH ↔ NDLS</button>
+                <button type="button" class="chip-btn" onclick="fillRoute('SBC', 'MAS')">SBC ↔ MAS</button>
+              </div>
+            </div>
+
+            <!-- Dynamic Train List Result Panel -->
+            <div id="trains-result" class="result-panel hidden">
+              <!-- Content injected via JS -->
+            </div>
+          </div>
+
+          <!-- 4. Train Schedule Tab -->
+          <div id="schedule-tab" class="tab-pane">
+            <div class="search-box-card">
+              <div class="card-header">
+                <h2>Reserved Train Route & Schedule</h2>
+                <p>Lookup intermediate halt timings, platform stoppage times, and distance mapping.</p>
+              </div>
+              <form id="schedule-form" class="search-form">
+                <div class="input-wrapper">
+                  <span class="input-icon material-icons-round">train</span>
+                  <input type="text" id="schedule-input" placeholder="Enter Train Number (e.g., 12952, 12301)..." required>
+                </div>
+                <button type="submit" class="btn btn-primary">
+                  <span>Get Schedule</span>
+                  <span class="material-icons-round">schedule</span>
+                </button>
+              </form>
+            </div>
+
+            <!-- Dynamic Schedule Result Panel -->
+            <div id="schedule-result" class="result-panel hidden">
+              <!-- Content injected via JS -->
+            </div>
+          </div>
+
+          <!-- 5. Live Train Status Tab -->
+          <div id="live-tab" class="tab-pane">
+            <div class="search-box-card">
+              <div class="card-header">
+                <h2 data-i18n="live_title">Real-Time Live Train Status (GPS)</h2>
+                <p data-i18n="live_desc">Track live train location, departure delays, upcoming halts, and platform numbers directly from NTES.</p>
+              </div>
+              <form id="live-form" class="search-form grid-layout">
+                <div class="input-wrapper" style="grid-column: span 2;">
+                  <span class="input-icon material-icons-round">train</span>
+                  <input type="text" id="live-train-input" placeholder="Enter Train Number (e.g. 12952, 12301, 12626)..." data-i18n-placeholder="live_placeholder" required>
+                </div>
+                <div class="input-wrapper">
+                  <span class="input-icon material-icons-round">today</span>
+                  <select id="live-date-select">
+                    <option value="today" data-i18n="opt_today">Today</option>
+                    <option value="yesterday" data-i18n="opt_yesterday">Yesterday</option>
+                  </select>
+                </div>
+                <button type="submit" class="btn btn-primary">
+                  <span data-i18n="btn_get_live">Track Live Train</span>
+                  <span class="material-icons-round">my_location</span>
+                </button>
+              </form>
+              <div class="pnr-examples" style="margin-top: 18px;">
+                <span data-i18n="label_examples">Popular Live Trains:</span>
+                <button type="button" class="chip-btn" onclick="prefillLive('12952')">12952 (Mumbai Rajdhani)</button>
+                <button type="button" class="chip-btn" onclick="prefillLive('12301')">12301 (Howrah Rajdhani)</button>
+                <button type="button" class="chip-btn" onclick="prefillLive('12626')">12626 (Kerala Express)</button>
+                <button type="button" class="chip-btn" onclick="prefillLive('22692')">22692 (Bengaluru Rajdhani)</button>
+              </div>
+            </div>
+
+            <!-- Dynamic Live Status Result Panel -->
+            <div id="live-result" class="result-panel hidden">
+              <!-- Content injected via JS -->
+            </div>
+          </div>
+          
+        </div>
+      </section>
+
+      <!-- Right side / Information sidebar -->
+      <aside class="sidebar-section">
+        <div class="sidebar-card">
+          <div class="sidebar-card-header">
+            <span class="material-icons-round">info</span>
+            <h3>Rules & Policies</h3>
+          </div>
+          
+          <div class="accordion">
+            <div class="accordion-item">
+              <button class="accordion-header">
+                <span>Refund Rules & Cancellation Rates</span>
+                <span class="material-icons-round arrow">expand_more</span>
+              </button>
+              <div class="accordion-content">
+                <p>Flat cancellation fees on Confirmed Tickets (>48 hrs before train departure):</p>
+                <ul>
+                  <li><strong>AC First / Executive</strong>: ₹240 + GST</li>
+                  <li><strong>AC 2 Tier / First Class</strong>: ₹200 + GST</li>
+                  <li><strong>AC 3 Tier / CC</strong>: ₹180 + GST</li>
+                  <li><strong>Sleeper Class (SL)</strong>: ₹120</li>
+                  <li><strong>Second Class (2S)</strong>: ₹60</li>
+                </ul>
+                <p class="note">No refund is granted on confirmed Tatkal tickets cancelled after chart preparation.</p>
+              </div>
+            </div>
+
+            <div class="accordion-item">
+              <button class="accordion-header">
+                <span>Tatkal Ticket Booking Timings</span>
+                <span class="material-icons-round arrow">expand_more</span>
+              </button>
+              <div class="accordion-content">
+                <p>Tatkal reservation timings open one day in advance of journey date:</p>
+                <ul>
+                  <li><strong>AC Classes (1A/2A/3A/CC)</strong>: Opens at <strong>10:00 AM</strong> daily.</li>
+                  <li><strong>Non-AC Classes (SL/2S)</strong>: Opens at <strong>11:00 AM</strong> daily.</li>
+                </ul>
+                <p class="note">Maximum of 4 passengers per booking is permitted on a single Tatkal request.</p>
+              </div>
+            </div>
+
+            <div class="accordion-item">
+              <button class="accordion-header">
+                <span>Passenger Name Transfer Rules</span>
+                <span class="material-icons-round arrow">expand_more</span>
+              </button>
+              <div class="accordion-content">
+                <p>Allowed only once by submitting a request to the Chief Reservation Supervisor 24 hours prior to departure:</p>
+                <ul>
+                  <li>Transfers only allowed to immediate family members (Spouse, Parents, Children, Siblings).</li>
+                  <li>Government employees can transfer to other colleagues on duty.</li>
+                </ul>
+              </div>
+            </div>
+            
+            <div class="accordion-item">
+              <button class="accordion-header">
+                <span>Catering Charges & Guidelines</span>
+                <span class="material-icons-round arrow">expand_more</span>
+              </button>
+              <div class="accordion-content">
+                <p>Catering is optional on Rajdhani, Shatabdi, and Duronto trains. In case you opt out during booking, you cannot demand food onboard unless extra billing is done subject to food availability.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Extra Google-style Information card -->
+        <div class="sidebar-card promo-card">
+          <div class="promo-content">
+            <span class="material-icons-round promo-icon">smart_toy</span>
+            <h4>Need Travel Assistance?</h4>
+            <p>Try **RailAI**, our intelligent agent in the bottom corner, to resolve questions, calculate rules, and search bookings instantly in conversational format.</p>
+          </div>
+        </div>
+      </aside>
+    </main>
+
+      </div>
+    </div>
+
+    <!-- Floating Chatbot Widget -->
+    <div id="chat-widget" class="chat-widget">
+      <!-- Chat Toggle Button -->
+      <button id="chat-toggle" class="chat-toggle-btn" style="padding: 0; overflow: hidden; background: transparent; border-radius: 50%; width: 90px; height: 90px; border: 4px solid var(--primary); box-shadow: 0 10px 30px rgba(0,0,0,0.15);">
+        <img src="chatbot_logo.png" alt="AskDISHA" style="width: 100%; height: 100%; object-fit: cover;">
+        <span class="chat-badge hidden">1</span>
+      </button>
+
+      <!-- Chat Window Panel -->
+      <div id="chat-window" class="chat-window hidden">
+        <div class="chat-header">
+          <div class="chat-assistant-info">
+            <div class="assistant-avatar" style="width: 60px; height: 60px; overflow: hidden; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: transparent; padding: 0;">
+              <img src="chatbot_logo.png" alt="AskDISHA" style="width: 100%; height: 100%; object-fit: cover;">
+            </div>
+            <div class="assistant-details">
+              <h4>RailAI Assistant</h4>
+              <span class="status-indicator online">Online (Groq Llama 3)</span>
+            </div>
+          </div>
+          <button id="chat-close" class="icon-btn">
+            <span class="material-icons-round">remove</span>
+          </button>
+        </div>
+
+        <div id="chat-messages" class="chat-messages">
+          <div class="chat-msg assistant">
+            <div class="msg-avatar" style="width: 50px; height: 50px; overflow: hidden; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: transparent; padding: 0; border: none;">
+              <img src="chatbot_logo.png" alt="AskDISHA" style="width: 100%; height: 100%; object-fit: cover;">
+            </div>
+            <div class="msg-content">
+              <p>Namaste! I am **RailAI**, your dynamic railway travel assistant. You can check ticket statuses, train listings, cancellation refund policies, and more here.</p>
+              <div class="quick-prompts">
+                <button onclick="sendQuickChat('Show trains between Delhi and Mumbai')">Delhi to Mumbai trains</button>
+                <button onclick="sendQuickChat('What is the refund rule for Sleeper ticket?')">Refund for Sleeper</button>
+                <button onclick="sendQuickChat('check PNR 1234567890')">Check PNR 1234567890</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Chat input area -->
+        <div class="chat-input-container">
+          <input type="text" id="chat-input" placeholder="Ask RailAI something..." autocomplete="off">
+          <button id="chat-send-btn" class="icon-btn primary" title="Send Message">
+            <span class="material-icons-round">send</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="i18n.js?v=2.4"></script>
+  <script src="app.js?v=2.4"></script>
+</body>
+</html>

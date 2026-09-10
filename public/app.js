@@ -12,6 +12,7 @@ document.addEventListener("DOMContentLoaded", () => {
   initForms();
   initChatbot();
   initLeftMenu();
+  initFloatingScroll();
 });
 
 // 0. Language Localization
@@ -1130,5 +1131,64 @@ function initLeftMenu() {
         });
       }
     });
+  });
+
+  // Sidebar Bottom Scroll Buttons
+  const scrollDownBtn = document.getElementById("menu-scroll-down-btn");
+  const scrollUpBtn = document.getElementById("menu-scroll-up-btn");
+  const navItems = document.getElementById("menu-nav-items");
+
+  if (scrollDownBtn && navItems) {
+    scrollDownBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      navItems.scrollBy({ top: 160, behavior: "smooth" });
+    });
+  }
+
+  if (scrollUpBtn && navItems) {
+    scrollUpBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      navItems.scrollBy({ top: -160, behavior: "smooth" });
+    });
+  }
+}
+
+// 7. Floating Page-Level Bottom/Top Scroll Button
+function initFloatingScroll() {
+  const scrollBtn = document.getElementById("floating-scroll-btn");
+  const scrollIcon = document.getElementById("floating-scroll-icon");
+  const scrollText = document.getElementById("floating-scroll-text");
+  if (!scrollBtn) return;
+
+  function updateScrollState() {
+    const scrollPos = window.scrollY || document.documentElement.scrollTop;
+    const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+    if (docHeight > 150 && scrollPos > docHeight * 0.35) {
+      if (scrollIcon) scrollIcon.textContent = "arrow_upward";
+      if (scrollText) scrollText.textContent = "Scroll Up";
+    } else {
+      if (scrollIcon) scrollIcon.textContent = "arrow_downward";
+      if (scrollText) scrollText.textContent = "Scroll Down";
+    }
+  }
+
+  window.addEventListener("scroll", updateScrollState, { passive: true });
+  updateScrollState();
+
+  scrollBtn.addEventListener("click", () => {
+    const scrollPos = window.scrollY || document.documentElement.scrollTop;
+    const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+    if (docHeight > 150 && scrollPos > docHeight * 0.35) {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } else {
+      const activePanel = document.querySelector(".tab-pane.active .result-panel:not(.hidden)") ||
+                          document.querySelector(".tab-pane.active") ||
+                          document.querySelector(".enquiry-section");
+      if (activePanel) {
+        activePanel.scrollIntoView({ behavior: "smooth", block: "start" });
+      } else {
+        window.scrollBy({ top: 550, behavior: "smooth" });
+      }
+    }
   });
 }

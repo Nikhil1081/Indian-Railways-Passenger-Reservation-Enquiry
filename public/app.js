@@ -107,22 +107,42 @@ function initForms() {
     const resultPanel = document.getElementById("pnr-result");
     showLoader(resultPanel);
 
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 3500);
-      const response = await fetch(`${API_BASE_URL}/api/pnr/${pnrInput}`, { signal: controller.signal });
-      clearTimeout(timeoutId);
-      if (!response.ok) throw new Error("Failed to fetch PNR status.");
-      const data = await response.json();
-      renderPNRResult(data);
-    } catch (err) {
-      console.warn("Backend PNR fetch failed, fallback to offline DB:", err);
-      if (window.OfflineRailDB) {
-        const offlineData = window.OfflineRailDB.getPNR(pnrInput);
-        renderPNRResult(offlineData, true);
-      } else {
-        renderError(resultPanel, err.message);
+    // 1. Try Direct Nationwide Live API
+    if (window.LiveRailAPI) {
+      try {
+        const liveData = await window.LiveRailAPI.getPNRStatus(pnrInput);
+        if (liveData && liveData.passengers && liveData.passengers.length > 0) {
+          renderPNRResult(liveData, false);
+          return;
+        }
+      } catch (liveErr) {
+        console.warn("LiveRailAPI PNR fetch failed, trying backend:", liveErr);
       }
+    }
+
+    // 2. Try Backend Server API
+    if (API_BASE_URL) {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 3500);
+        const response = await fetch(`${API_BASE_URL}/api/pnr/${pnrInput}`, { signal: controller.signal });
+        clearTimeout(timeoutId);
+        if (response.ok) {
+          const data = await response.json();
+          renderPNRResult(data, false);
+          return;
+        }
+      } catch (err) {
+        console.warn("Backend PNR fetch failed:", err);
+      }
+    }
+
+    // 3. Fallback to Offline Engine
+    if (window.OfflineRailDB) {
+      const offlineData = window.OfflineRailDB.getPNR(pnrInput);
+      renderPNRResult(offlineData, true);
+    } else {
+      renderError(resultPanel, "Failed to fetch PNR status.");
     }
   });
 
@@ -140,27 +160,47 @@ function initForms() {
     const resultPanel = document.getElementById("seats-result");
     showLoader(resultPanel);
 
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 3500);
-      const url = `${API_BASE_URL}/api/trains/seats?train_no=${encodeURIComponent(trainNo)}&source=${encodeURIComponent(src)}&destination=${encodeURIComponent(dst)}&date=${date}&class_code=${classCode}&quota=${quota}`;
-      const response = await fetch(url, { signal: controller.signal });
-      clearTimeout(timeoutId);
-      if (!response.ok) throw new Error("Seat/Fare details unavailable.");
-      const data = await response.json();
-      renderSeatsResult(data);
-    } catch (err) {
-      console.warn("Backend seats fetch failed, fallback to offline DB:", err);
-      if (window.OfflineRailDB) {
-        const offlineData = window.OfflineRailDB.getSeats(trainNo, src, dst, date, classCode, quota);
-        renderSeatsResult(offlineData, true);
-      } else {
-        renderError(resultPanel, err.message);
+    // 1. Try Direct Nationwide Live API
+    if (window.LiveRailAPI) {
+      try {
+        const liveData = await window.LiveRailAPI.getSeatAvailability(trainNo, src, dst, date, classCode, quota);
+        if (liveData && liveData.availability && liveData.availability.length > 0) {
+          renderSeatsResult(liveData, false);
+          return;
+        }
+      } catch (liveErr) {
+        console.warn("LiveRailAPI seat availability lookup failed, trying backend:", liveErr);
       }
+    }
+
+    // 2. Try Backend Server API
+    if (API_BASE_URL) {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 3500);
+        const url = `${API_BASE_URL}/api/trains/seats?train_no=${encodeURIComponent(trainNo)}&source=${encodeURIComponent(src)}&destination=${encodeURIComponent(dst)}&date=${date}&class_code=${classCode}&quota=${quota}`;
+        const response = await fetch(url, { signal: controller.signal });
+        clearTimeout(timeoutId);
+        if (response.ok) {
+          const data = await response.json();
+          renderSeatsResult(data, false);
+          return;
+        }
+      } catch (err) {
+        console.warn("Backend seats fetch failed:", err);
+      }
+    }
+
+    // 3. Fallback to Offline Engine
+    if (window.OfflineRailDB) {
+      const offlineData = window.OfflineRailDB.getSeats(trainNo, src, dst, date, classCode, quota);
+      renderSeatsResult(offlineData, true);
+    } else {
+      renderError(resultPanel, "Seat/Fare details unavailable.");
     }
   });
 
-  // Train between Stations form
+  // Train between Stations form (Nationwide Live Data)
   const trainsForm = document.getElementById("trains-form");
   trainsForm.addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -170,27 +210,45 @@ function initForms() {
     const resultPanel = document.getElementById("trains-result");
     showLoader(resultPanel);
 
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 3500);
-      const url = `${API_BASE_URL}/api/trains/search?source=${encodeURIComponent(src)}&destination=${encodeURIComponent(dst)}`;
-      const response = await fetch(url, { signal: controller.signal });
-      clearTimeout(timeoutId);
-      if (!response.ok) throw new Error("Failed to search trains.");
-      const data = await response.json();
-      if (data && data.length > 0) {
-        renderTrainsResult(data, src, dst);
-        return;
+    // 1. Try Direct Nationwide Live API
+    if (window.LiveRailAPI) {
+      try {
+        const liveData = await window.LiveRailAPI.searchTrains(src, dst);
+        if (liveData && liveData.length > 0) {
+          renderTrainsResult(liveData, src, dst, false, true);
+          return;
+        }
+      } catch (liveErr) {
+        console.warn("LiveRailAPI search error, trying backend:", liveErr);
       }
-      throw new Error("No trains returned");
-    } catch (err) {
-      console.warn("Backend train search failed, fallback to offline DB:", err);
-      if (window.OfflineRailDB) {
-        const offlineData = window.OfflineRailDB.searchTrains(src, dst);
-        renderTrainsResult(offlineData, src, dst, true);
-      } else {
-        renderError(resultPanel, err.message);
+    }
+
+    // 2. Try Backend Server API
+    if (API_BASE_URL) {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 3500);
+        const url = `${API_BASE_URL}/api/trains/search?source=${encodeURIComponent(src)}&destination=${encodeURIComponent(dst)}`;
+        const response = await fetch(url, { signal: controller.signal });
+        clearTimeout(timeoutId);
+        if (response.ok) {
+          const data = await response.json();
+          if (data && data.length > 0) {
+            renderTrainsResult(data, src, dst, false, false);
+            return;
+          }
+        }
+      } catch (err) {
+        console.warn("Backend train search failed:", err);
       }
+    }
+
+    // 3. Fallback to Offline Engine
+    if (window.OfflineRailDB) {
+      const offlineData = window.OfflineRailDB.searchTrains(src, dst);
+      renderTrainsResult(offlineData, src, dst, true, false);
+    } else {
+      renderError(resultPanel, "No trains found for the selected route.");
     }
   });
 
@@ -213,26 +271,46 @@ function initForms() {
     const resultPanel = document.getElementById("schedule-result");
     showLoader(resultPanel);
 
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 3500);
-      const response = await fetch(`${API_BASE_URL}/api/trains/schedule/${encodeURIComponent(trainNo)}`, { signal: controller.signal });
-      clearTimeout(timeoutId);
-      if (!response.ok) throw new Error("Train schedule not found.");
-      const data = await response.json();
-      renderScheduleResult(data);
-    } catch (err) {
-      console.warn("Backend schedule fetch failed, fallback to offline DB:", err);
-      if (window.OfflineRailDB) {
-        const offlineData = window.OfflineRailDB.getSchedule(trainNo);
-        renderScheduleResult(offlineData, true);
-      } else {
-        renderError(resultPanel, err.message);
+    // 1. Try Direct Nationwide Live API
+    if (window.LiveRailAPI) {
+      try {
+        const liveData = await window.LiveRailAPI.getTrainSchedule(trainNo);
+        if (liveData && liveData.schedule && liveData.schedule.length > 0) {
+          renderScheduleResult(liveData, false);
+          return;
+        }
+      } catch (liveErr) {
+        console.warn("LiveRailAPI schedule failed, trying backend:", liveErr);
       }
+    }
+
+    // 2. Try Backend Server API
+    if (API_BASE_URL) {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 3500);
+        const response = await fetch(`${API_BASE_URL}/api/trains/schedule/${encodeURIComponent(trainNo)}`, { signal: controller.signal });
+        clearTimeout(timeoutId);
+        if (response.ok) {
+          const data = await response.json();
+          renderScheduleResult(data, false);
+          return;
+        }
+      } catch (err) {
+        console.warn("Backend schedule fetch failed:", err);
+      }
+    }
+
+    // 3. Fallback to Offline Engine
+    if (window.OfflineRailDB) {
+      const offlineData = window.OfflineRailDB.getSchedule(trainNo);
+      renderScheduleResult(offlineData, true);
+    } else {
+      renderError(resultPanel, "Train schedule not found.");
     }
   });
 
-  // Live Train Status form
+  // Live Train Status form (Nationwide NTES Tracking)
   const liveForm = document.getElementById("live-form");
   if (liveForm) {
     liveForm.addEventListener("submit", async (e) => {
@@ -243,22 +321,42 @@ function initForms() {
       const resultPanel = document.getElementById("live-result");
       showLoader(resultPanel);
 
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 3500);
-        const response = await fetch(`${API_BASE_URL}/api/trains/live/${encodeURIComponent(trainNo)}?date=${dateVal}`, { signal: controller.signal });
-        clearTimeout(timeoutId);
-        if (!response.ok) throw new Error("Live running data not found.");
-        const data = await response.json();
-        renderLiveResult(data);
-      } catch (err) {
-        console.warn("Backend live status fetch failed, fallback to offline DB:", err);
-        if (window.OfflineRailDB) {
-          const offlineData = window.OfflineRailDB.getLiveStatus(trainNo);
-          renderLiveResult(offlineData, true);
-        } else {
-          renderError(resultPanel, err.message);
+      // 1. Try Direct Nationwide Live API (NTES GPS Tracking)
+      if (window.LiveRailAPI) {
+        try {
+          const liveData = await window.LiveRailAPI.getLiveTrainStatus(trainNo, dateVal);
+          if (liveData && liveData.stations && liveData.stations.length > 0) {
+            renderLiveResult(liveData, false);
+            return;
+          }
+        } catch (liveErr) {
+          console.warn("LiveRailAPI live tracking failed, trying backend:", liveErr);
         }
+      }
+
+      // 2. Try Backend Server API
+      if (API_BASE_URL) {
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 3500);
+          const response = await fetch(`${API_BASE_URL}/api/trains/live/${encodeURIComponent(trainNo)}?date=${dateVal}`, { signal: controller.signal });
+          clearTimeout(timeoutId);
+          if (response.ok) {
+            const data = await response.json();
+            renderLiveResult(data, false);
+            return;
+          }
+        } catch (err) {
+          console.warn("Backend live status fetch failed:", err);
+        }
+      }
+
+      // 3. Fallback to Offline Engine
+      if (window.OfflineRailDB) {
+        const offlineData = window.OfflineRailDB.getLiveStatus(trainNo);
+        renderLiveResult(offlineData, true);
+      } else {
+        renderError(resultPanel, "Live running data not found.");
       }
     });
   }
@@ -463,7 +561,7 @@ function renderSeatsResult(data, isOffline) {
   `;
 }
 
-function renderTrainsResult(data, src, dst, isOffline) {
+function renderTrainsResult(data, src, dst, isOffline, isNationwideLive) {
   const panel = document.getElementById("trains-result");
   if (!data || data.length === 0) {
     panel.innerHTML = `
@@ -475,33 +573,48 @@ function renderTrainsResult(data, src, dst, isOffline) {
     return;
   }
 
-  const noticeHtml = isOffline ? `
-    <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; background:rgba(255, 152, 0, 0.12); color:#c46900; border:1px solid rgba(255, 152, 0, 0.35); padding:10px 16px; border-radius:12px; font-size:13px; font-weight:600; margin-bottom:14px;">
-      <div style="display:flex; align-items:center; gap:8px;">
-        <span class="material-icons-round" style="font-size:20px;">offline_bolt</span>
-        <span>Showing trains via <strong>Instant Cache</strong> (Render cloud backend is inactive or starting up).</span>
+  let noticeHtml = "";
+  if (isNationwideLive) {
+    noticeHtml = `
+      <div style="display:flex; align-items:center; gap:8px; background:rgba(34, 197, 94, 0.12); color:#15803d; border:1px solid rgba(34, 197, 94, 0.35); padding:10px 16px; border-radius:12px; font-size:13px; font-weight:700; margin-bottom:14px;">
+        <span class="material-icons-round" style="font-size:20px; color:#16a34a;">sensors</span>
+        <span>Connected to <strong>Nationwide Live Railway Network</strong> (${data.length} real-time trains found).</span>
       </div>
-      <a href="https://render.com/deploy?repo=https://github.com/Nikhil1081/Indian-Railways-Passenger-Reservation-Enquiry" target="_blank" style="display:inline-flex; align-items:center; gap:4px; color:#c46900; text-decoration:underline; font-weight:700;">
-        <span>Deploy to Render</span>
-        <span class="material-icons-round" style="font-size:16px;">open_in_new</span>
-      </a>
-    </div>
-  ` : "";
+    `;
+  } else if (isOffline) {
+    noticeHtml = `
+      <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; background:rgba(255, 152, 0, 0.12); color:#c46900; border:1px solid rgba(255, 152, 0, 0.35); padding:10px 16px; border-radius:12px; font-size:13px; font-weight:600; margin-bottom:14px;">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span class="material-icons-round" style="font-size:20px;">offline_bolt</span>
+          <span>Showing trains via <strong>Instant Cache</strong> (Render cloud backend is inactive or starting up).</span>
+        </div>
+        <a href="https://render.com/deploy?repo=https://github.com/Nikhil1081/Indian-Railways-Passenger-Reservation-Enquiry" target="_blank" style="display:inline-flex; align-items:center; gap:4px; color:#c46900; text-decoration:underline; font-weight:700;">
+          <span>Deploy to Render</span>
+          <span class="material-icons-round" style="font-size:16px;">open_in_new</span>
+        </a>
+      </div>
+    `;
+  }
 
   let rowsHtml = "";
   data.forEach(t => {
     const runsOn = Array.isArray(t.runs) ? t.runs.join(", ") : "Daily";
     const routeStr = Array.isArray(t.route) ? t.route.join(" → ") : `${t.from} → ${t.to}`;
     const classes = Array.isArray(t.classes) ? t.classes : ["3A", "2A", "SL"];
+    const timingBadge = (t.departure_time && t.arrival_time && t.departure_time !== "--")
+      ? `<div style="font-size:13px; color:var(--primary); font-weight:700; margin-top:4px;"><span class="material-icons-round" style="font-size:15px; vertical-align:middle;">schedule</span> Dep: <strong>${t.departure_time}</strong> | Arr: <strong>${t.arrival_time}</strong> (${t.duration || ''})</div>`
+      : "";
+
     rowsHtml += `
       <tr>
         <td><strong>${t.train_no}</strong></td>
         <td>
           <div style="font-weight:700; font-size:16px;">${t.name}</div>
           <div style="font-size:12px; color:var(--text-muted); margin-top:2px;">Route: ${routeStr} (${t.distance_km || 350} km)</div>
+          ${timingBadge}
         </td>
         <td><span style="font-size:13px; font-weight:600; color:var(--text-muted);">${runsOn}</span></td>
-        <td>${classes.map(c => `<span style="display:inline-block; font-size:10px; font-weight:700; background:var(--primary-soft); color:var(--primary); padding:3px 8px; border-radius:6px; margin-right:4px;">${c}</span>`).join("")}</td>
+        <td>${classes.map(c => `<span style="display:inline-block; font-size:10px; font-weight:700; background:var(--primary-soft); color:var(--primary); padding:3px 8px; border-radius:6px; margin-right:4px; margin-bottom:2px;">${c}</span>`).join("")}</td>
         <td>
           <button class="chip-btn" onclick="queryAvailabilityFromSearch('${t.train_no}', '${src}', '${dst}', '${classes[0]}')">Seats & Fare</button>
         </td>

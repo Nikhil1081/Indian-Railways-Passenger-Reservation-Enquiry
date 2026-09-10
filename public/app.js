@@ -108,12 +108,21 @@ function initForms() {
     showLoader(resultPanel);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/pnr/${pnrInput}`);
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3500);
+      const response = await fetch(`${API_BASE_URL}/api/pnr/${pnrInput}`, { signal: controller.signal });
+      clearTimeout(timeoutId);
       if (!response.ok) throw new Error("Failed to fetch PNR status.");
       const data = await response.json();
       renderPNRResult(data);
     } catch (err) {
-      renderError(resultPanel, err.message);
+      console.warn("Backend PNR fetch failed, fallback to offline DB:", err);
+      if (window.OfflineRailDB) {
+        const offlineData = window.OfflineRailDB.getPNR(pnrInput);
+        renderPNRResult(offlineData, true);
+      } else {
+        renderError(resultPanel, err.message);
+      }
     }
   });
 
@@ -132,13 +141,22 @@ function initForms() {
     showLoader(resultPanel);
 
     try {
-      const url = `${API_BASE_URL}/api/trains/seats?train_no=${trainNo}&source=${src}&destination=${dst}&date=${date}&class_code=${classCode}&quota=${quota}`;
-      const response = await fetch(url);
-      if (!response.ok) throw new Error("Seat/Fare details unavailable. Ensure train number and station codes are correct.");
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3500);
+      const url = `${API_BASE_URL}/api/trains/seats?train_no=${encodeURIComponent(trainNo)}&source=${encodeURIComponent(src)}&destination=${encodeURIComponent(dst)}&date=${date}&class_code=${classCode}&quota=${quota}`;
+      const response = await fetch(url, { signal: controller.signal });
+      clearTimeout(timeoutId);
+      if (!response.ok) throw new Error("Seat/Fare details unavailable.");
       const data = await response.json();
       renderSeatsResult(data);
     } catch (err) {
-      renderError(resultPanel, err.message);
+      console.warn("Backend seats fetch failed, fallback to offline DB:", err);
+      if (window.OfflineRailDB) {
+        const offlineData = window.OfflineRailDB.getSeats(trainNo, src, dst, date, classCode, quota);
+        renderSeatsResult(offlineData, true);
+      } else {
+        renderError(resultPanel, err.message);
+      }
     }
   });
 
@@ -153,13 +171,26 @@ function initForms() {
     showLoader(resultPanel);
 
     try {
-      const url = `${API_BASE_URL}/api/trains/search?source=${src}&destination=${dst}`;
-      const response = await fetch(url);
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3500);
+      const url = `${API_BASE_URL}/api/trains/search?source=${encodeURIComponent(src)}&destination=${encodeURIComponent(dst)}`;
+      const response = await fetch(url, { signal: controller.signal });
+      clearTimeout(timeoutId);
       if (!response.ok) throw new Error("Failed to search trains.");
       const data = await response.json();
-      renderTrainsResult(data, src, dst);
+      if (data && data.length > 0) {
+        renderTrainsResult(data, src, dst);
+        return;
+      }
+      throw new Error("No trains returned");
     } catch (err) {
-      renderError(resultPanel, err.message);
+      console.warn("Backend train search failed, fallback to offline DB:", err);
+      if (window.OfflineRailDB) {
+        const offlineData = window.OfflineRailDB.searchTrains(src, dst);
+        renderTrainsResult(offlineData, src, dst, true);
+      } else {
+        renderError(resultPanel, err.message);
+      }
     }
   });
 
@@ -183,12 +214,21 @@ function initForms() {
     showLoader(resultPanel);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/trains/schedule/${trainNo}`);
-      if (!response.ok) throw new Error("Train schedule not found. Check the train number.");
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3500);
+      const response = await fetch(`${API_BASE_URL}/api/trains/schedule/${encodeURIComponent(trainNo)}`, { signal: controller.signal });
+      clearTimeout(timeoutId);
+      if (!response.ok) throw new Error("Train schedule not found.");
       const data = await response.json();
       renderScheduleResult(data);
     } catch (err) {
-      renderError(resultPanel, err.message);
+      console.warn("Backend schedule fetch failed, fallback to offline DB:", err);
+      if (window.OfflineRailDB) {
+        const offlineData = window.OfflineRailDB.getSchedule(trainNo);
+        renderScheduleResult(offlineData, true);
+      } else {
+        renderError(resultPanel, err.message);
+      }
     }
   });
 
@@ -204,12 +244,21 @@ function initForms() {
       showLoader(resultPanel);
 
       try {
-        const response = await fetch(`${API_BASE_URL}/api/trains/live/${trainNo}?date=${dateVal}`);
-        if (!response.ok) throw new Error("Live running data not found. Please verify the train number.");
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 3500);
+        const response = await fetch(`${API_BASE_URL}/api/trains/live/${encodeURIComponent(trainNo)}?date=${dateVal}`, { signal: controller.signal });
+        clearTimeout(timeoutId);
+        if (!response.ok) throw new Error("Live running data not found.");
         const data = await response.json();
         renderLiveResult(data);
       } catch (err) {
-        renderError(resultPanel, err.message);
+        console.warn("Backend live status fetch failed, fallback to offline DB:", err);
+        if (window.OfflineRailDB) {
+          const offlineData = window.OfflineRailDB.getLiveStatus(trainNo);
+          renderLiveResult(offlineData, true);
+        } else {
+          renderError(resultPanel, err.message);
+        }
       }
     });
   }
@@ -264,10 +313,23 @@ function renderError(panel, msg) {
 }
 
 // Renderers for Results
-function renderPNRResult(data) {
+function renderPNRResult(data, isOffline) {
   const panel = document.getElementById("pnr-result");
   const isPrepared = data.chart_status === "CHART PREPARED";
   const badgeClass = isPrepared ? "badge-success" : "badge-warning";
+
+  const noticeHtml = isOffline ? `
+    <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; background:rgba(255, 152, 0, 0.12); color:#c46900; border:1px solid rgba(255, 152, 0, 0.35); padding:10px 16px; border-radius:12px; font-size:13px; font-weight:600; margin-bottom:14px;">
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span class="material-icons-round" style="font-size:20px;">offline_bolt</span>
+        <span>Simulated PNR Confirmation in <strong>Instant Cache Mode</strong>.</span>
+      </div>
+      <a href="https://render.com/deploy?repo=https://github.com/Nikhil1081/Indian-Railways-Passenger-Reservation-Enquiry" target="_blank" style="display:inline-flex; align-items:center; gap:4px; color:#c46900; text-decoration:underline; font-weight:700;">
+        <span>Deploy to Render</span>
+        <span class="material-icons-round" style="font-size:16px;">open_in_new</span>
+      </a>
+    </div>
+  ` : "";
 
   let paxHtml = "";
   data.passengers.forEach((p, idx) => {
@@ -281,6 +343,7 @@ function renderPNRResult(data) {
   });
 
   panel.innerHTML = `
+    ${noticeHtml}
     <div class="result-header">
       <div>
         <h3 style="font-size: 22px; font-weight:700;">PNR Status: ${data.pnr}</h3>
@@ -314,23 +377,45 @@ function renderPNRResult(data) {
   `;
 }
 
-function renderSeatsResult(data) {
+function renderSeatsResult(data, isOffline) {
   const panel = document.getElementById("seats-result");
   
+  const noticeHtml = isOffline ? `
+    <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; background:rgba(255, 152, 0, 0.12); color:#c46900; border:1px solid rgba(255, 152, 0, 0.35); padding:10px 16px; border-radius:12px; font-size:13px; font-weight:600; margin-bottom:14px;">
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span class="material-icons-round" style="font-size:20px;">offline_bolt</span>
+        <span>Availability calculated in <strong>Instant Cache Mode</strong>.</span>
+      </div>
+      <a href="https://render.com/deploy?repo=https://github.com/Nikhil1081/Indian-Railways-Passenger-Reservation-Enquiry" target="_blank" style="display:inline-flex; align-items:center; gap:4px; color:#c46900; text-decoration:underline; font-weight:700;">
+        <span>Deploy to Render</span>
+        <span class="material-icons-round" style="font-size:16px;">open_in_new</span>
+      </a>
+    </div>
+  ` : "";
+
   let colHtml = "";
-  data.availability.forEach(a => {
+  (data.availability || []).forEach(a => {
     let colClass = "status-green";
     if (a.status.includes("WL")) colClass = "status-red";
     else if (a.status.includes("RAC")) colClass = "status-orange";
 
-    const d = new Date(a.date);
-    const formattedDate = d.toLocaleDateString("en-IN", { day: '2-digit', month: 'short', weekday: 'short' });
+    let dateText = a.date;
+    try {
+      if (a.date && a.date.includes("-")) {
+        const d = new Date(a.date);
+        dateText = d.toLocaleDateString("en-IN", { day: '2-digit', month: 'short', weekday: 'short' });
+      }
+    } catch(e) {}
+
+    const probVal = a.confirm_probability !== undefined 
+      ? Math.round(a.confirm_probability * 100) 
+      : (a.probability !== undefined ? Math.round(a.probability) : 90);
 
     colHtml += `
       <div class="avail-column">
-        <span class="date">${formattedDate}</span>
+        <span class="date">${dateText}</span>
         <span class="status ${colClass}">${a.status}</span>
-        <span style="font-size:11px; color:var(--text-muted); font-weight:600;">Confirm: ${Math.round(a.confirm_probability * 100)}%</span>
+        <span style="font-size:11px; color:var(--text-muted); font-weight:600;">Confirm: ${probVal}%</span>
       </div>
     `;
   });
@@ -346,11 +431,11 @@ function renderSeatsResult(data) {
         </div>
         <div>
           <span style="font-size:11px; text-transform:uppercase; font-weight:700; color:var(--text-muted); letter-spacing:0.8px;">Base + SF/Reservation</span>
-          <h4 style="font-size:18px; font-weight:700;">₹${data.fare.base_fare} + ₹${data.fare.superfast_fee + data.fare.reservation_fee}</h4>
+          <h4 style="font-size:18px; font-weight:700;">₹${data.fare.base_fare} + ₹${(data.fare.superfast_fee || 0) + (data.fare.reservation_fee || 0)}</h4>
         </div>
         <div>
           <span style="font-size:11px; text-transform:uppercase; font-weight:700; color:var(--text-muted); letter-spacing:0.8px;">Catering + GST (5%)</span>
-          <h4 style="font-size:18px; font-weight:700;">₹${data.fare.catering_fee} + ₹${data.fare.gst}</h4>
+          <h4 style="font-size:18px; font-weight:700;">₹${data.fare.catering_fee || 0} + ₹${data.fare.gst || 0}</h4>
         </div>
         <div style="background-color: var(--bg-card); padding: 10px 20px; border-radius: 14px; border: 1px solid var(--border); box-shadow: var(--shadow);">
           <span style="font-size:11px; text-transform:uppercase; font-weight:700; color:var(--primary); letter-spacing:0.8px;">Total Ticket Fare</span>
@@ -361,6 +446,7 @@ function renderSeatsResult(data) {
   }
 
   panel.innerHTML = `
+    ${noticeHtml}
     <div class="result-header">
       <div>
         <h3 style="font-size: 22px;">${data.train_name} (${data.train_no})</h3>
@@ -377,9 +463,9 @@ function renderSeatsResult(data) {
   `;
 }
 
-function renderTrainsResult(data, src, dst) {
+function renderTrainsResult(data, src, dst, isOffline) {
   const panel = document.getElementById("trains-result");
-  if (data.length === 0) {
+  if (!data || data.length === 0) {
     panel.innerHTML = `
       <div style="text-align:center; padding:32px; color:var(--text-muted);">
         <span class="material-icons-round" style="font-size:56px;">train</span>
@@ -389,26 +475,42 @@ function renderTrainsResult(data, src, dst) {
     return;
   }
 
+  const noticeHtml = isOffline ? `
+    <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; background:rgba(255, 152, 0, 0.12); color:#c46900; border:1px solid rgba(255, 152, 0, 0.35); padding:10px 16px; border-radius:12px; font-size:13px; font-weight:600; margin-bottom:14px;">
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span class="material-icons-round" style="font-size:20px;">offline_bolt</span>
+        <span>Showing trains via <strong>Instant Cache</strong> (Render cloud backend is inactive or starting up).</span>
+      </div>
+      <a href="https://render.com/deploy?repo=https://github.com/Nikhil1081/Indian-Railways-Passenger-Reservation-Enquiry" target="_blank" style="display:inline-flex; align-items:center; gap:4px; color:#c46900; text-decoration:underline; font-weight:700;">
+        <span>Deploy to Render</span>
+        <span class="material-icons-round" style="font-size:16px;">open_in_new</span>
+      </a>
+    </div>
+  ` : "";
+
   let rowsHtml = "";
   data.forEach(t => {
-    const runsOn = t.runs.join(", ");
+    const runsOn = Array.isArray(t.runs) ? t.runs.join(", ") : "Daily";
+    const routeStr = Array.isArray(t.route) ? t.route.join(" → ") : `${t.from} → ${t.to}`;
+    const classes = Array.isArray(t.classes) ? t.classes : ["3A", "2A", "SL"];
     rowsHtml += `
       <tr>
         <td><strong>${t.train_no}</strong></td>
         <td>
           <div style="font-weight:700; font-size:16px;">${t.name}</div>
-          <div style="font-size:12px; color:var(--text-muted); margin-top:2px;">Route: ${t.route.join(" → ")}</div>
+          <div style="font-size:12px; color:var(--text-muted); margin-top:2px;">Route: ${routeStr} (${t.distance_km || 350} km)</div>
         </td>
         <td><span style="font-size:13px; font-weight:600; color:var(--text-muted);">${runsOn}</span></td>
-        <td>${t.classes.map(c => `<span style="display:inline-block; font-size:10px; font-weight:700; background:var(--primary-soft); color:var(--primary); padding:3px 8px; border-radius:6px; margin-right:4px;">${c}</span>`).join("")}</td>
+        <td>${classes.map(c => `<span style="display:inline-block; font-size:10px; font-weight:700; background:var(--primary-soft); color:var(--primary); padding:3px 8px; border-radius:6px; margin-right:4px;">${c}</span>`).join("")}</td>
         <td>
-          <button class="chip-btn" onclick="queryAvailabilityFromSearch('${t.train_no}', '${src}', '${dst}', '${t.classes[0]}')">Seats & Fare</button>
+          <button class="chip-btn" onclick="queryAvailabilityFromSearch('${t.train_no}', '${src}', '${dst}', '${classes[0]}')">Seats & Fare</button>
         </td>
       </tr>
     `;
   });
 
   panel.innerHTML = `
+    ${noticeHtml}
     <div class="result-header">
       <h3 style="font-size: 20px;">Trains: ${src} to ${dst} (${data.length} found)</h3>
     </div>
@@ -447,11 +549,24 @@ window.queryAvailabilityFromSearch = function(trainNo, src, dst, defaultClass) {
   document.getElementById("seats-form").dispatchEvent(new Event("submit"));
 };
 
-function renderScheduleResult(data) {
+function renderScheduleResult(data, isOffline) {
   const panel = document.getElementById("schedule-result");
 
+  const noticeHtml = isOffline ? `
+    <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; background:rgba(255, 152, 0, 0.12); color:#c46900; border:1px solid rgba(255, 152, 0, 0.35); padding:10px 16px; border-radius:12px; font-size:13px; font-weight:600; margin-bottom:14px;">
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span class="material-icons-round" style="font-size:20px;">offline_bolt</span>
+        <span>Schedule loaded via <strong>Instant Cache Mode</strong>.</span>
+      </div>
+      <a href="https://render.com/deploy?repo=https://github.com/Nikhil1081/Indian-Railways-Passenger-Reservation-Enquiry" target="_blank" style="display:inline-flex; align-items:center; gap:4px; color:#c46900; text-decoration:underline; font-weight:700;">
+        <span>Deploy to Render</span>
+        <span class="material-icons-round" style="font-size:16px;">open_in_new</span>
+      </a>
+    </div>
+  ` : "";
+
   let rowsHtml = "";
-  data.schedule.forEach(s => {
+  (data.schedule || []).forEach(s => {
     rowsHtml += `
       <tr>
         <td><strong>${s.station_code}</strong></td>
@@ -465,6 +580,7 @@ function renderScheduleResult(data) {
   });
 
   panel.innerHTML = `
+    ${noticeHtml}
     <div class="result-header">
       <div>
         <h3 style="font-size: 20px;">Route of ${data.name} (${data.train_no})</h3>
@@ -491,9 +607,22 @@ function renderScheduleResult(data) {
 }
 
 // 4.1 Live Train Status Renderer
-function renderLiveResult(data) {
+function renderLiveResult(data, isOffline) {
   const panel = document.getElementById("live-result");
   const tr = (key, fallback) => (window.I18N ? window.I18N.t(key, fallback) : fallback);
+
+  const noticeHtml = isOffline ? `
+    <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; background:rgba(255, 152, 0, 0.12); color:#c46900; border:1px solid rgba(255, 152, 0, 0.35); padding:10px 16px; border-radius:12px; font-size:13px; font-weight:600; margin-bottom:14px;">
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span class="material-icons-round" style="font-size:20px;">offline_bolt</span>
+        <span>Simulated Live Route in <strong>Instant Cache Mode</strong>.</span>
+      </div>
+      <a href="https://render.com/deploy?repo=https://github.com/Nikhil1081/Indian-Railways-Passenger-Reservation-Enquiry" target="_blank" style="display:inline-flex; align-items:center; gap:4px; color:#c46900; text-decoration:underline; font-weight:700;">
+        <span>Deploy to Render</span>
+        <span class="material-icons-round" style="font-size:16px;">open_in_new</span>
+      </a>
+    </div>
+  ` : "";
 
   const isTerminated = data.is_terminated;
   const delayMins = data.delay_minutes || 0;
@@ -569,6 +698,7 @@ function renderLiveResult(data) {
   });
 
   panel.innerHTML = `
+    ${noticeHtml}
     <div class="live-status-hero-card">
       <div class="live-status-header">
         <div class="live-train-title">

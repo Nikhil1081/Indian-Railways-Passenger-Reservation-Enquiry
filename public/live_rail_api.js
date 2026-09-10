@@ -60,11 +60,9 @@
     for (const [k, v] of Object.entries(CITY_STATION_MAP)) {
       if (clean.includes(k) || k.includes(clean)) return v;
     }
-    // Assume it's already a station code if 3-5 uppercase letters
     return query.trim().toUpperCase().slice(0, 5);
   }
 
-  // Cache of latest train search results for quick seat lookup
   let latestTrainSearchResults = {};
 
   const LiveRailAPI = {
@@ -125,7 +123,6 @@
         const isPremier = (t.trainType in { RAJ:1, SHT:1, VB:1, DUR:1 } || 
           (t.trainName && (t.trainName.includes("RAJDHANI") || t.trainName.includes("VANDE") || t.trainName.includes("SHATABDI"))));
 
-        // Cache availability data for this train
         latestTrainSearchResults[trainNo] = t;
 
         return {
@@ -157,49 +154,105 @@
       const cleanNo = String(trainNo).trim().padStart(5, "0");
       const dojFormatted = formatDoj(doj || "today");
 
-      const url = `https://api.confirmtkt.com/api/trains/livestatusall?trainno=${cleanNo}&doj=${dojFormatted}&locale=en`;
-      const response = await fetch(url, { headers: { "Accept": "application/json" } });
-      if (!response.ok) {
-        throw new Error(`Live status API returned status ${response.status}`);
-      }
-      const data = await response.json();
-      if (!data || data.trainDataFound !== "trainRunningDataFound") {
-        throw new Error(data.message || "Train running data not found for selected date.");
+      const sessionToken = randomHex(32);
+      const url = `https://api.confirmtkt.com/api/trains/livestatusall?trainno=${cleanNo}&doj=${dojFormatted}&locale=en&session=${sessionToken}`;
+      
+      let liveRes = null;
+      try {
+        const response = await fetch(url, { headers: { "Accept": "application/json" } });
+        if (response.ok) {
+          liveRes = await response.json();
+        }
+      } catch (e) {
+        console.warn("Live status fetch error:", e);
       }
 
-      const stations = (data.stations || []).map((s, idx) => {
-        const pf = String(s.ExpectedPlatformNo || s.pfNo || "-");
+      // If active running data was found
+      if (liveRes && liveRes.trainDataFound === "trainRunningDataFound" && liveRes.stations && liveRes.stations.length > 0) {
+        let trainName = liveRes.trainName;
+        if (!trainName) {
+          try {
+            const sched = await this.getTrainSchedule(cleanNo, dojFormatted);
+            if (sched && sched.name) trainName = sched.name;
+          } catch(e) {}
+        }
+        if (!trainName) trainName = `Express (${cleanNo})`;
+
+        const stations = liveRes.stations.map((s, idx) => {
+          const pf = String(s.ExpectedPlatformNo || s.pfNo || "-");
+          return {
+            station_code: (s.stnCode || "").toUpperCase().trim(),
+            station_name: s.stnCodeName || s.stnCode || "Station",
+            scheduled_arrival: s.schArrTime || "--",
+            scheduled_departure: s.schDepTime || "--",
+            actual_arrival: s.actArr || s.schArrTime || "--",
+            actual_departure: s.actDep || s.schDepTime || "--",
+            delay_arrival_mins: s.delayArr || 0,
+            delay_departure_mins: s.delayDep || 0,
+            has_arrived: Boolean(s.arr),
+            has_departed: Boolean(s.dep),
+            is_current: (s.stnCode === liveRes.curStn) || (!s.dep && s.arr),
+            platform: pf === "0" ? "-" : pf,
+            distance_km: s.distance || 0,
+            halt_minutes: s.haltMinutes || 0
+          };
+        });
+
+        const now = new Date();
+        const timeStr = now.toLocaleTimeString("en-IN", { hour: '2-digit', minute: '2-digit' });
+
         return {
-          station_code: (s.stnCode || "").toUpperCase().trim(),
-          station_name: s.stnCodeName || s.stnCode || "Station",
-          scheduled_arrival: s.schArrTime || "--",
-          scheduled_departure: s.schDepTime || "--",
-          actual_arrival: s.actArr || s.schArrTime || "--",
-          actual_departure: s.actDep || s.schDepTime || "--",
-          delay_arrival_mins: s.delayArr || 0,
-          delay_departure_mins: s.delayDep || 0,
-          has_arrived: Boolean(s.arr),
-          has_departed: Boolean(s.dep),
-          is_current: (s.stnCode === data.curStn) || (!s.dep && s.arr),
-          platform: pf === "0" ? "-" : pf,
-          distance_km: s.distance || 0,
-          halt_minutes: s.haltMinutes || 0
+          train_no: cleanNo,
+          train_name: trainName,
+          date: dojFormatted,
+          last_updated: liveRes.updatedTime || `${timeStr} (Live)`,
+          total_delay_minutes: liveRes.totalLateMins || 0,
+          delay_minutes: liveRes.totalLateMins || 0,
+          current_station_name: liveRes.curStnName || liveRes.curStn || "In Transit",
+          current_station_code: liveRes.curStn || "",
+          is_terminated: Boolean(liveRes.terminated),
+          source: "live",
+          stations: stations
         };
-      });
+      }
 
-      return {
-        train_no: cleanNo,
-        train_name: data.trainName || `Express (${cleanNo})`,
-        date: dojFormatted,
-        last_updated: data.updatedTime || "Just now",
-        total_delay_minutes: data.totalLateMins || 0,
-        delay_minutes: data.totalLateMins || 0,
-        current_station_name: data.curStnName || data.curStn || "In Transit",
-        current_station_code: data.curStn || "",
-        is_terminated: Boolean(data.terminated),
-        source: "live",
-        stations: stations
-      };
+      // If live running data not active (e.g. train not started or completed),
+      // fetch the official schedule for THIS EXACT train to display its real stops and timetable!
+      const sched = await this.getTrainSchedule(cleanNo, dojFormatted);
+      if (sched && sched.schedule && sched.schedule.length > 0) {
+        const stations = sched.schedule.map((s, idx) => ({
+          station_code: s.station_code,
+          station_name: s.station_name,
+          scheduled_arrival: s.arrival,
+          scheduled_departure: s.departure,
+          actual_arrival: s.arrival,
+          actual_departure: s.departure,
+          delay_arrival_mins: 0,
+          delay_departure_mins: 0,
+          has_arrived: false,
+          has_departed: false,
+          is_current: idx === 0,
+          platform: "1",
+          distance_km: s.distance_km,
+          halt_minutes: s.halt_minutes
+        }));
+
+        return {
+          train_no: cleanNo,
+          train_name: sched.name,
+          date: dojFormatted,
+          last_updated: "Scheduled Timetable",
+          total_delay_minutes: 0,
+          delay_minutes: 0,
+          current_station_name: stations[0].station_name + " (Origin)",
+          current_station_code: stations[0].station_code,
+          is_terminated: false,
+          source: "schedule",
+          stations: stations
+        };
+      }
+
+      throw new Error(`Train ${cleanNo} not found in Indian Railways database.`);
     },
 
     /**
@@ -209,7 +262,8 @@
       const cleanNo = String(trainNo).trim().padStart(5, "0");
       const dojFormatted = formatDoj(date || "today");
 
-      const url = `https://api.confirmtkt.com/api/trains/schedulewithintermediatestn?trainNo=${cleanNo}&date=${dojFormatted}&locale=en`;
+      const sessionToken = randomHex(32);
+      const url = `https://api.confirmtkt.com/api/trains/schedulewithintermediatestn?trainNo=${cleanNo}&date=${dojFormatted}&locale=en&session=${sessionToken}`;
       const response = await fetch(url, { headers: { "Accept": "application/json" } });
       if (!response.ok) {
         throw new Error(`Schedule API returned status ${response.status}`);
@@ -217,7 +271,7 @@
       const data = await response.json();
       const rawStops = data.Schedule || [];
       if (rawStops.length === 0) {
-        throw new Error("Train timetable not found.");
+        throw new Error(`Train timetable not found for ${cleanNo}.`);
       }
 
       const schedule = rawStops.map((s, idx) => ({
@@ -247,7 +301,6 @@
       const cls = (classCode || "3A").toUpperCase();
       const q = (quota || "GN").toUpperCase();
 
-      // Check if we have availability cache
       let availObj = null;
       const cachedTrain = latestTrainSearchResults[cleanNo];
       if (cachedTrain && cachedTrain.avaiblitycache && cachedTrain.avaiblitycache[cls]) {
@@ -255,7 +308,6 @@
       }
 
       if (!availObj) {
-        // Fetch fresh availability
         try {
           const trains = await this.searchTrains(srcCode, dstCode, dojFormatted);
           const found = trains.find(t => t.train_no === cleanNo);
@@ -271,7 +323,6 @@
       let liveFare = availObj ? parseInt(availObj.Fare, 10) : 0;
       let liveProb = availObj && availObj.Prediction ? parseInt(availObj.Prediction, 10) : 92;
 
-      // Base fare calculation fallback if fare not provided
       if (!liveFare || isNaN(liveFare)) {
         const rates = { "1A": 3.2, "2A": 2.0, "3A": 1.4, "EC": 2.8, "CC": 1.3, "SL": 0.5, "2S": 0.3 };
         liveFare = Math.round(380 * (rates[cls] || 1.2)) + 120;
@@ -347,7 +398,6 @@
           };
         }
       }
-      // If unregistered test PNR or API unavailable, use deterministic simulation
       if (window.OfflineRailDB) {
         return window.OfflineRailDB.getPNR(cleanPnr);
       }

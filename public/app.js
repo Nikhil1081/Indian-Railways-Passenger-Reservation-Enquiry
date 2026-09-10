@@ -817,8 +817,8 @@ function renderLiveResult(data, isOffline) {
         <div class="live-train-title">
           <span class="material-icons-round" style="font-size:48px; color:var(--primary);">train</span>
           <div>
-            <h3>${data.train_name} (${data.train_no})</h3>
-            <span style="font-size:16px; color:var(--text-muted);">${tr("opt_today", "Date")}: ${data.date} | ${data.last_updated}</span>
+            <h3>${data.train_name || 'Express'} (${data.train_no})</h3>
+            <span style="font-size:16px; color:var(--text-muted);">${tr("opt_today", "Date")}: ${data.date || new Date().toLocaleDateString('en-IN')} | ${data.last_updated || 'Live NTES GPS'}</span>
           </div>
         </div>
         <div style="display:flex; align-items:center; gap:16px; flex-wrap:wrap;">

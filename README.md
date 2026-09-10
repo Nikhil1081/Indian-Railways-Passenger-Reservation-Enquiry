@@ -1,5 +1,17 @@
 # INDIAN RAILWAYS PASSENGER RESERVATION ENQUIRY 🚆
 
+[![Firebase Hosting](https://img.shields.io/badge/Frontend-Firebase%20Hosting-FFCA28?logo=firebase&logoColor=black)](https://ats-universal-ai.web.app)
+[![Render Backend](https://img.shields.io/badge/Backend-Render-46E3B7?logo=render&logoColor=white)](https://indian-railways-enquiry-backend.onrender.com)
+[![GitHub](https://img.shields.io/badge/GitHub-Repository-181717?logo=github&logoColor=white)](https://github.com/Nikhil1081/Indian-Railways-Passenger-Reservation-Enquiry)
+
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/Nikhil1081/Indian-Railways-Passenger-Reservation-Enquiry)
+
+### 🌐 Live Links
+- **Frontend (Firebase Hosting)**: [https://ats-universal-ai.web.app](https://ats-universal-ai.web.app) (Mirror: [https://ats-universal-ai.firebaseapp.com](https://ats-universal-ai.firebaseapp.com))
+- **Backend (Render Web Service)**: [https://indian-railways-enquiry-backend.onrender.com](https://indian-railways-enquiry-backend.onrender.com)
+- **1-Click Render Deploy**: [Deploy to Render](https://render.com/deploy?repo=https://github.com/Nikhil1081/Indian-Railways-Passenger-Reservation-Enquiry)
+- **GitHub Repository**: [https://github.com/Nikhil1081/Indian-Railways-Passenger-Reservation-Enquiry](https://github.com/Nikhil1081/Indian-Railways-Passenger-Reservation-Enquiry)
+
 A modern, high-performance web application cloning the official **Indian Railways Passenger Reservation Enquiry** system with real-time train tracking, multi-language support (13 Indian languages), NTES live running status, dynamic seat availability, telescopic fare calculation engine, and an AI chatbot (AskDISHA / RailAI).
 
 ---

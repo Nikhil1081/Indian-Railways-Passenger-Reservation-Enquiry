@@ -7,7 +7,8 @@
 [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/Nikhil1081/Indian-Railways-Passenger-Reservation-Enquiry)
 
 ### 🌐 Live Links
-- **Frontend (Firebase Hosting)**: [https://ats-universal-ai.web.app](https://ats-universal-ai.web.app) (Mirror: [https://ats-universal-ai.firebaseapp.com](https://ats-universal-ai.firebaseapp.com))
+- **Brand New Primary Link (Firebase)**: [https://indian-railways-live.web.app](https://indian-railways-live.web.app) (Mirror: [https://indian-railways-live.firebaseapp.com](https://indian-railways-live.firebaseapp.com))
+- **Secondary Link (Firebase)**: [https://ats-universal-ai.web.app](https://ats-universal-ai.web.app) (Mirror: [https://ats-universal-ai.firebaseapp.com](https://ats-universal-ai.firebaseapp.com))
 - **Backend (Render Web Service)**: [https://indian-railways-enquiry-backend.onrender.com](https://indian-railways-enquiry-backend.onrender.com)
 - **1-Click Render Deploy**: [Deploy to Render](https://render.com/deploy?repo=https://github.com/Nikhil1081/Indian-Railways-Passenger-Reservation-Enquiry)
 - **GitHub Repository**: [https://github.com/Nikhil1081/Indian-Railways-Passenger-Reservation-Enquiry](https://github.com/Nikhil1081/Indian-Railways-Passenger-Reservation-Enquiry)

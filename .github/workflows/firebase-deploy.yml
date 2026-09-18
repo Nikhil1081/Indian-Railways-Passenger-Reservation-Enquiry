@@ -9,12 +9,14 @@ on:
 jobs:
   deploy_to_firebase:
     runs-on: ubuntu-latest
+    env:
+      FIREBASE_SA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
       - name: Deploy to Firebase Hosting
-        if: "${{ secrets.FIREBASE_SERVICE_ACCOUNT != '' }}"
+        if: env.FIREBASE_SA != ''
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: '${{ secrets.GITHUB_TOKEN }}'
@@ -23,5 +25,5 @@ jobs:
           projectId: ats-universal-ai
 
       - name: Deployment Notice
-        if: "${{ secrets.FIREBASE_SERVICE_ACCOUNT == '' }}"
+        if: env.FIREBASE_SA == ''
         run: echo "FIREBASE_SERVICE_ACCOUNT secret is optional. Live site is active at https://indian-railways-live.web.app"

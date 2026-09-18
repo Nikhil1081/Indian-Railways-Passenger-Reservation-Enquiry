@@ -1,5 +1,6 @@
 {
   "hosting": {
+    "site": "indian-railways-live",
     "public": "public",
     "ignore": [
       "firebase.json",
